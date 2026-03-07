@@ -1,0 +1,137 @@
+const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+} = require("@aws-sdk/lib-dynamodb");
+const {
+  ApiGatewayManagementApiClient,
+  PostToConnectionCommand,
+} = require("@aws-sdk/client-apigatewaymanagementapi");
+const { randomUUID } = require("crypto");
+
+const sqsClient = new SQSClient({});
+
+const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+function getTenantId(event) {
+  try {
+    const token = event.headers?.authorization?.replace("Bearer ", "");
+    if (!token) return "tenant-default";
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString(),
+    );
+    return payload.sub;
+  } catch {
+    return "tenant-default";
+  }
+}
+
+exports.handler = async (event) => {
+  const method = event.requestContext.http.method;
+  const tenantId = getTenantId(event);
+
+  try {
+    if (method === "POST") {
+      const body = JSON.parse(event.body);
+      const calendarId = randomUUID();
+      const newCalendar = {
+        PK: `TENANT#${tenantId}`,
+        SK: `CAL#${calendarId}`,
+        calendarId,
+        name: body.name,
+        description: body.description || "",
+        createdAt: new Date().toISOString(),
+      };
+
+      await client.send(
+        new PutCommand({
+          TableName: process.env.TABLE_NAME,
+          Item: newCalendar,
+        }),
+      );
+
+      // Broadcast to all connected WebSocket clients
+      await broadcast(newCalendar);
+
+      // Send to webhook queue
+      if (process.env.WEBHOOK_QUEUE_URL) {
+        await sqsClient.send(
+          new SendMessageCommand({
+            QueueUrl: process.env.WEBHOOK_QUEUE_URL,
+            MessageBody: JSON.stringify({
+              tenantId,
+              eventType: "CALENDAR_CREATED",
+              data: newCalendar,
+            }),
+          }),
+        );
+      }
+
+      return {
+        statusCode: 201,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ calendarId, name: body.name }),
+      };
+    }
+
+    if (method === "GET") {
+      const result = await client.send(
+        new QueryCommand({
+          TableName: process.env.TABLE_NAME,
+          KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+          ExpressionAttributeValues: {
+            ":pk": `TENANT#${tenantId}`,
+            ":sk": "CAL#",
+          },
+        }),
+      );
+
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result.Items),
+      };
+    }
+  } catch (err) {
+    console.error(err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message }),
+    };
+  }
+};
+
+async function broadcast(data) {
+  // Get all connections
+  const result = await client.send(
+    new QueryCommand({
+      TableName: process.env.TABLE_NAME,
+      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      ExpressionAttributeValues: {
+        ":pk": "CONNECTIONS",
+        ":sk": "CONN#",
+      },
+    }),
+  );
+
+  if (!result.Items || result.Items.length === 0) return;
+
+  const wsClient = new ApiGatewayManagementApiClient({
+    endpoint: process.env.WS_ENDPOINT,
+  });
+
+  const message = JSON.stringify({ type: "CALENDAR_CREATED", data });
+
+  await Promise.allSettled(
+    result.Items.map((conn) =>
+      wsClient.send(
+        new PostToConnectionCommand({
+          ConnectionId: conn.connectionId,
+          Data: Buffer.from(message),
+        }),
+      ),
+    ),
+  );
+}

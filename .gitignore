@@ -1,0 +1,4 @@
+﻿node_modules
+cdk/cdk.out
+web/dist
+web/.angular
