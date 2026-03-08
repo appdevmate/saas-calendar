@@ -1,0 +1,128 @@
+<div class="dashboard">
+
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Manage your calendars and events</p>
+        </div>
+        <p-button label="New Calendar" icon="pi pi-plus" (click)="showDialog = true" />
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="pi pi-calendar"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ calendars.length }}</span>
+                <span class="stat-label">Total Calendars</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="pi pi-globe"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ publicCalendarsCount }}</span>
+                <span class="stat-label">Public Calendars</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="pi pi-clock"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">—</span>
+                <span class="stat-label">Total Events</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="pi pi-link"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">—</span>
+                <span class="stat-label">Webhooks</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendars Section -->
+    <div class="section-header">
+        <h2 class="section-title">My Calendars</h2>
+        <span class="section-count">{{ calendars.length }} total</span>
+    </div>
+
+    <div *ngIf="calendars.length === 0" class="empty-state">
+        <i class="pi pi-calendar-plus"></i>
+        <p>No calendars yet. Create your first one!</p>
+        <p-button label="New Calendar" icon="pi pi-plus" (click)="showDialog = true" />
+    </div>
+
+    <div class="calendars-grid">
+        <div *ngFor="let cal of calendars" class="calendar-card">
+
+            <div class="calendar-card-header">
+                <div class="calendar-icon">
+                    <i class="pi pi-calendar"></i>
+                </div>
+                <div class="calendar-meta">
+                    <h3 class="calendar-name">{{ cal.name }}</h3>
+                    <span class="calendar-date">Created {{ cal.createdAt | date:'MMM d, y' }}</span>
+                </div>
+                <p-tag *ngIf="cal.publicToken" value="Public" severity="success" styleClass="ml-auto" />
+            </div>
+
+            <p class="calendar-description">{{ cal.description || 'No description provided.' }}</p>
+
+            <div *ngIf="cal.publicToken" class="public-link">
+                <i class="pi pi-link"></i>
+                <span>/public/{{ cal.publicToken }}</span>
+            </div>
+
+            <p-divider />
+
+            <div class="calendar-actions">
+                <p-button label="View Events" icon="pi pi-calendar" severity="secondary" [outlined]="true" size="small"
+                    (click)="viewEvents(cal.calendarId)" />
+                <p-button [label]="cal.publicToken ? 'Published' : 'Make Public'" icon="pi pi-share-alt"
+                    [severity]="cal.publicToken ? 'success' : 'secondary'" [outlined]="true" size="small"
+                    [disabled]="!!cal.publicToken" (click)="onPublish(cal.calendarId)" />
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- New Calendar Dialog -->
+<p-dialog header="New Calendar" [(visible)]="showDialog" [style]="{ width: '420px' }" [modal]="true" [draggable]="false"
+    [resizable]="false">
+    <div style="display: flex; flex-direction: column; gap: 1.2rem; padding: 0.5rem 0;">
+
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <label
+                style="font-size: 0.8rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Calendar
+                Name</label>
+            <input pInputText placeholder="e.g. Work, Personal" [(ngModel)]="newName"
+                style="width: 100%; border-radius: 8px;" />
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <label
+                style="font-size: 0.8rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.05em;">Description</label>
+            <input pInputText placeholder="Optional" [(ngModel)]="newDescription"
+                style="width: 100%; border-radius: 8px;" />
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #F3F4F6; margin: 0;" />
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+            <p-button label="Cancel" severity="secondary" [outlined]="true" (click)="showDialog = false" />
+            <p-button label="Create Calendar" [loading]="loading" (click)="onCreate()" />
+        </div>
+
+    </div>
+</p-dialog>

@@ -17,31 +17,38 @@ export const routes: Routes = [
       ),
   },
   {
-    path: 'dashboard',
+    path: '',
     loadComponent: () =>
-      import('./features/dashboard/dashboard.component').then(
-        (m) => m.DashboardComponent,
-      ),
-  },
-  {
-    path: 'public/:token',
-    loadComponent: () =>
-      import('./features/public/public-calendar/public-calendar.component').then(
-        (m) => m.PublicCalendarComponent,
-      ),
-  },
-  {
-    path: 'calendars/:calendarId/events',
-    loadComponent: () =>
-      import('./features/events/event-list/event-list.component').then(
-        (m) => m.EventListComponent,
-      ),
-  },
-  {
-    path: 'calendar',
-    loadComponent: () =>
-      import('./features/calendar/calendar-view/calendar-view.component').then(
-        (m) => m.CalendarViewComponent,
-      ),
+      import('./core/layout/layout.component').then((m) => m.LayoutComponent),
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard.component').then(
+            (m) => m.DashboardComponent,
+          ),
+      },
+      {
+        path: 'calendar',
+        loadComponent: () =>
+          import('./features/calendar/calendar-view/calendar-view.component').then(
+            (m) => m.CalendarViewComponent,
+          ),
+      },
+      {
+        path: 'calendars/:calendarId/events',
+        loadComponent: () =>
+          import('./features/events/event-list/event-list.component').then(
+            (m) => m.EventListComponent,
+          ),
+      },
+      {
+        path: 'public/:token',
+        loadComponent: () =>
+          import('./features/public/public-calendar/public-calendar.component').then(
+            (m) => m.PublicCalendarComponent,
+          ),
+      },
+    ],
   },
 ];
