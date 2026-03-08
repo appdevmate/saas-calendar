@@ -21,29 +21,6 @@ export class CdkStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    // ─── Auth ─────────────────────────────────────────────────
-    const userPool = new cognito.UserPool(this, "UserPool", {
-      userPoolName: "saas-calendar-users",
-      selfSignUpEnabled: true,
-      signInAliases: { email: true },
-      autoVerify: { email: true },
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    const userPoolClient = new cognito.UserPoolClient(this, "UserPoolClient", {
-      userPool,
-      authFlows: {
-        userPassword: true,
-        userSrp: true,
-      },
-      generateSecret: false,
-    });
-
-    new cdk.CfnOutput(this, "UserPoolId", { value: userPool.userPoolId });
-    new cdk.CfnOutput(this, "UserPoolClientId", {
-      value: userPoolClient.userPoolClientId,
-    });
-
     // ─── SQS ──────────────────────────────────────────────────
     const webhookQueue = new sqs.Queue(this, "WebhookQueue", {
       queueName: "saas-calendar-webhooks",

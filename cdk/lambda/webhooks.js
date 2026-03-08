@@ -10,16 +10,7 @@ const { randomUUID } = require("crypto");
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function getTenantId(event) {
-  try {
-    const token = event.headers?.authorization?.replace("Bearer ", "");
-    if (!token) return "tenant-default";
-    const payload = JSON.parse(
-      Buffer.from(token.split(".")[1], "base64").toString(),
-    );
-    return payload.sub;
-  } catch {
-    return "tenant-default";
-  }
+  return event.headers?.['x-api-key'] || 'tenant-default';
 }
 
 exports.handler = async (event) => {
