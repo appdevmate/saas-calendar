@@ -37,6 +37,8 @@ exports.handler = async (event) => {
         eventId,
         calendarId,
         name: body.name,
+        color: body.color || "#3B82F6",
+        recurrence: body.recurrence || "none",
         description: body.description || "",
         startDate: body.startDate,
         endDate: body.endDate || "",
