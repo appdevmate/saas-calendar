@@ -3,6 +3,7 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   PutCommand,
+  DeleteCommand,
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const {
@@ -67,6 +68,21 @@ exports.handler = async (event) => {
         body: JSON.stringify({ calendarId, name: body.name }),
       };
     }
+
+    if (method === 'DELETE') {
+  const calendarId = event.pathParameters?.calendarId;
+  if (!calendarId) return { statusCode: 400, body: JSON.stringify({ message: 'Missing calendarId' }) };
+
+  await client.send(new DeleteCommand({
+    TableName: process.env.TABLE_NAME,
+    Key: {
+      PK: `TENANT#${tenantId}`,
+      SK: `CAL#${calendarId}`
+    }
+  }));
+
+  return { statusCode: 200, body: JSON.stringify({ message: 'Deleted' }) };
+}
 
     if (method === "GET") {
       const result = await client.send(

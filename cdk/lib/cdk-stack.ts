@@ -195,6 +195,12 @@ export class CdkStack extends cdk.Stack {
     });
 
     api.addRoutes({
+  path: '/calendars/{calendarId}',
+  methods: [apigw.HttpMethod.DELETE],
+  integration: new integrations.HttpLambdaIntegration('CalendarDeleteIntegration', calendarsFn),
+});
+
+    api.addRoutes({
       path: "/webhooks",
       methods: [apigw.HttpMethod.GET, apigw.HttpMethod.POST],
       integration: new integrations.HttpLambdaIntegration(
