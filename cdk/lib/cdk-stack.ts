@@ -172,7 +172,7 @@ export class CdkStack extends cdk.Stack {
       corsPreflight: {
         allowOrigins: ["*"],
         allowMethods: [apigw.CorsHttpMethod.ANY],
-        allowHeaders: ["*"],
+        allowHeaders: ["Content-Type", "x-api-key", "Authorization"],
       },
     });
 
@@ -195,10 +195,22 @@ export class CdkStack extends cdk.Stack {
     });
 
     api.addRoutes({
-  path: '/calendars/{calendarId}',
-  methods: [apigw.HttpMethod.DELETE],
-  integration: new integrations.HttpLambdaIntegration('CalendarDeleteIntegration', calendarsFn),
-});
+      path: "/calendars/{calendarId}/events/{eventId}",
+      methods: [apigw.HttpMethod.PATCH, apigw.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration(
+        "EventUpdateDeleteIntegration",
+        eventsFn,
+      ),
+    });
+
+    api.addRoutes({
+      path: "/calendars/{calendarId}",
+      methods: [apigw.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration(
+        "CalendarDeleteIntegration",
+        calendarsFn,
+      ),
+    });
 
     api.addRoutes({
       path: "/webhooks",
