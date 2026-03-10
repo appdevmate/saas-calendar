@@ -122,6 +122,15 @@ export class CdkStack extends cdk.Stack {
       },
     });
 
+    const appointmentsFn = new lambda.Function(this, "AppointmentsFunction", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "appointments.handler",
+      code: lambda.Code.fromAsset("lambda"),
+      environment: {
+        TABLE_NAME: table.tableName,
+      },
+    });
+
     // ─── Permissions ──────────────────────────────────────────
     table.grantReadWriteData(calendarsFn);
     table.grantReadWriteData(webhooksFn);
@@ -129,6 +138,7 @@ export class CdkStack extends cdk.Stack {
     table.grantReadWriteData(wsFn);
     table.grantReadWriteData(publicFn);
     table.grantReadWriteData(eventsFn);
+    table.grantReadWriteData(appointmentsFn);
 
     webhookQueue.grantSendMessages(calendarsFn);
     webhookQueue.grantConsumeMessages(webhookFn);
@@ -250,6 +260,28 @@ export class CdkStack extends cdk.Stack {
       integration: new integrations.HttpLambdaIntegration(
         "EventsIntegration",
         eventsFn,
+      ),
+    });
+
+    api.addRoutes({
+      path: "/appointments",
+      methods: [apigw.HttpMethod.GET, apigw.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration(
+        "AppointmentsIntegration",
+        appointmentsFn,
+      ),
+    });
+
+    api.addRoutes({
+      path: "/appointments/{appointmentId}",
+      methods: [
+        apigw.HttpMethod.GET,
+        apigw.HttpMethod.PATCH,
+        apigw.HttpMethod.DELETE,
+      ],
+      integration: new integrations.HttpLambdaIntegration(
+        "AppointmentIntegration",
+        appointmentsFn,
       ),
     });
 
