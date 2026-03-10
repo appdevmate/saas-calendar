@@ -21,29 +21,6 @@ export class CdkStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
-    // ─── Auth ─────────────────────────────────────────────────
-    const userPool = new cognito.UserPool(this, "UserPool", {
-      userPoolName: "saas-calendar-users",
-      selfSignUpEnabled: true,
-      signInAliases: { email: true },
-      autoVerify: { email: true },
-      removalPolicy: cdk.RemovalPolicy.DESTROY,
-    });
-
-    const userPoolClient = new cognito.UserPoolClient(this, "UserPoolClient", {
-      userPool,
-      authFlows: {
-        userPassword: true,
-        userSrp: true,
-      },
-      generateSecret: false,
-    });
-
-    new cdk.CfnOutput(this, "UserPoolId", { value: userPool.userPoolId });
-    new cdk.CfnOutput(this, "UserPoolClientId", {
-      value: userPoolClient.userPoolClientId,
-    });
-
     // ─── SQS ──────────────────────────────────────────────────
     const webhookQueue = new sqs.Queue(this, "WebhookQueue", {
       queueName: "saas-calendar-webhooks",
@@ -205,7 +182,7 @@ export class CdkStack extends cdk.Stack {
       corsPreflight: {
         allowOrigins: ["*"],
         allowMethods: [apigw.CorsHttpMethod.ANY],
-        allowHeaders: ["*"],
+        allowHeaders: ["Content-Type", "x-api-key", "Authorization"],
       },
     });
 
@@ -223,6 +200,24 @@ export class CdkStack extends cdk.Stack {
       methods: [apigw.HttpMethod.GET, apigw.HttpMethod.POST],
       integration: new integrations.HttpLambdaIntegration(
         "CalendarsIntegration",
+        calendarsFn,
+      ),
+    });
+
+    api.addRoutes({
+      path: "/calendars/{calendarId}/events/{eventId}",
+      methods: [apigw.HttpMethod.PATCH, apigw.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration(
+        "EventUpdateDeleteIntegration",
+        eventsFn,
+      ),
+    });
+
+    api.addRoutes({
+      path: "/calendars/{calendarId}",
+      methods: [apigw.HttpMethod.DELETE],
+      integration: new integrations.HttpLambdaIntegration(
+        "CalendarDeleteIntegration",
         calendarsFn,
       ),
     });

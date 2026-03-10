@@ -1,0 +1,229 @@
+.dashboard {
+    max-width: 1200px;
+}
+
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0 0 0.25rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: #6B7280;
+        margin: 0;
+    }
+}
+
+// ── Stats ─────────────────────────────────────────
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid #E5E7EB;
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+
+        i {
+            font-size: 1.25rem;
+        }
+
+        &.blue {
+            background: #EFF6FF;
+            color: #3B82F6;
+        }
+
+        &.green {
+            background: #F0FDF4;
+            color: #16a34a;
+        }
+
+        &.purple {
+            background: #F5F3FF;
+            color: #8B5CF6;
+        }
+
+        &.orange {
+            background: #FFF7ED;
+            color: #F59E0B;
+        }
+    }
+
+    .stat-info {
+        display: flex;
+        flex-direction: column;
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #6B7280;
+            margin-top: 0.25rem;
+        }
+    }
+}
+
+// ── Section header ────────────────────────────────
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #111827;
+        margin: 0;
+    }
+
+    .section-count {
+        font-size: 0.8rem;
+        color: #6B7280;
+        background: #F3F4F6;
+        padding: 2px 8px;
+        border-radius: 20px;
+    }
+}
+
+// ── Empty state ───────────────────────────────────
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 12px;
+    border: 1px dashed #E5E7EB;
+    color: #6B7280;
+
+    i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    p {
+        margin-bottom: 1rem;
+    }
+}
+
+// ── Calendar cards ────────────────────────────────
+.calendars-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.calendar-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #E5E7EB;
+    padding: 1.25rem;
+    transition: box-shadow 0.2s;
+
+    &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .calendar-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .calendar-icon {
+        width: 40px;
+        height: 40px;
+        background: #F0FDF4;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #16a34a;
+        flex-shrink: 0;
+
+        i {
+            font-size: 1rem;
+        }
+    }
+
+    .calendar-meta {
+        flex: 1;
+        overflow: hidden;
+
+        .calendar-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #111827;
+            margin: 0 0 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calendar-date {
+            font-size: 0.78rem;
+            color: #9CA3AF;
+        }
+    }
+
+    .calendar-description {
+        font-size: 0.875rem;
+        color: #6B7280;
+        margin: 0 0 0.75rem;
+        line-height: 1.5;
+    }
+
+    .public-link {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.78rem;
+        color: #16a34a;
+        background: #F0FDF4;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+
+        span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    .calendar-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+}

@@ -1,0 +1,53 @@
+<div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" [class.collapsed]="collapsed()">
+
+        <div class="sidebar-header">
+            <div class="logo">
+                <p-avatar icon="pi pi-calendar" styleClass="logo-avatar" />
+                <span class="logo-text">CalSync</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a *ngFor="let item of navItems" class="nav-item" [routerLink]="item.route" routerLinkActive="active"
+                [routerLinkActiveOptions]="{exact: true}" [pTooltip]="collapsed() ? item.label : ''"
+                tooltipPosition="right" pRipple>
+                <i [class]="item.icon"></i>
+                <span>{{ item.label }}</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <p-divider />
+            <a class="nav-item logout" (click)="logout()" [pTooltip]="collapsed() ? 'Logout' : ''"
+                tooltipPosition="right" pRipple>
+                <i class="pi pi-sign-out"></i>
+                <span>Logout</span>
+            </a>
+        </div>
+
+    </aside>
+
+    <!-- Main -->
+    <div class="main-area">
+
+        <div class="topbar">
+            <div class="topbar-left">
+                <p-button [icon]="collapsed() ? 'pi pi-bars' : 'pi pi-chevron-left'" [rounded]="true"
+                    severity="secondary" [text]="true" (click)="toggle()" />
+                <span class="topbar-title">CalSync</span>
+            </div>
+            <div class="topbar-user">
+                <span class="username">My Account</span>
+                <p-avatar label="S" styleClass="user-avatar" shape="circle" />
+            </div>
+        </div>
+
+        <div class="page-content">
+            <router-outlet />
+        </div>
+
+    </div>
+</div>

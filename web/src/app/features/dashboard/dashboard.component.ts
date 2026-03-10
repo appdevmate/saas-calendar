@@ -6,6 +6,10 @@ import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { DialogModule } from 'primeng/dialog';
+import { BadgeModule } from 'primeng/badge';
+import { TagModule } from 'primeng/tag';
+import { DividerModule } from 'primeng/divider';
+import { TooltipModule } from 'primeng/tooltip';
 import { WebSocketService } from '../../core/websocket.service';
 import { Router } from '@angular/router';
 
@@ -19,72 +23,13 @@ import { Router } from '@angular/router';
     CardModule,
     InputTextModule,
     DialogModule,
+    BadgeModule,
+    TagModule,
+    DividerModule,
+    TooltipModule,
   ],
-  template: `
-    <div style="padding: 2rem">
-      <div class="flex justify-content-between align-items-center mb-4">
-        <h2>My Calendars</h2>
-        <p-button
-          label="New Calendar"
-          icon="pi pi-plus"
-          (click)="showDialog = true"
-        />
-      </div>
-
-      <div class="grid">
-        <div *ngFor="let cal of calendars" class="col-12 md:col-4">
-          <p-card [header]="cal.name">
-            <p>{{ cal.description || 'No description' }}</p>
-            <small style="color: gray">{{ cal.createdAt | date }}</small>
-            <br /><br />
-            <p-button
-              label="Make Public"
-              icon="pi pi-share-alt"
-              size="small"
-              (click)="onPublish(cal.calendarId)"
-            />
-            <p-button
-              label="View Events"
-              icon="pi pi-calendar"
-              size="small"
-              (click)="viewEvents(cal.calendarId)"
-            />
-            <p
-              *ngIf="cal.publicToken"
-              style="font-size: 0.8rem; color: green; margin-top: 0.5rem;"
-            >
-              Public link: /public/{{ cal.publicToken }}
-            </p>
-          </p-card>
-        </div>
-      </div>
-
-      <p *ngIf="calendars.length === 0">No calendars yet. Create one!</p>
-
-      <!-- New Calendar Dialog -->
-      <p-dialog
-        header="New Calendar"
-        [(visible)]="showDialog"
-        [style]="{ width: '400px' }"
-      >
-        <div class="flex flex-column gap-3">
-          <input
-            pInputText
-            placeholder="Calendar Name"
-            [(ngModel)]="newName"
-            class="w-full"
-          />
-          <input
-            pInputText
-            placeholder="Description (optional)"
-            [(ngModel)]="newDescription"
-            class="w-full"
-          />
-          <p-button label="Create" [loading]="loading" (click)="onCreate()" />
-        </div>
-      </p-dialog>
-    </div>
-  `,
+  templateUrl: './dashboard.component.html',
+  styleUrl: './dashboard.component.scss',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   calendars: Calendar[] = [];
@@ -158,5 +103,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   viewEvents(calendarId: string) {
     this.router.navigate(['/calendars', calendarId, 'events']);
+  }
+
+  get publicCalendarsCount() {
+    return this.calendars.filter((c) => c.publicToken).length;
   }
 }
