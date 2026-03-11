@@ -35,12 +35,29 @@ exports.handler = async (event) => {
   const PK = `TENANT#${tenantId}`;
 
   // GET /appointments
+  // GET /appointments
   if (method === "GET" && !appointmentId) {
+    const doctorEmail = event.queryStringParameters?.doctorEmail;
+
+    const filterValues = { ":pk": PK, ":prefix": "APPT#" };
+    let filterExp = undefined;
+    let filterNames = undefined;
+
+    if (doctorEmail) {
+      filterExp = "#doctorEmail = :doctorEmail";
+      filterNames = { "#doctorEmail": "doctorEmail" };
+      filterValues[":doctorEmail"] = doctorEmail.toLowerCase().trim();
+    }
+
     const result = await db.send(
       new QueryCommand({
         TableName: TABLE,
         KeyConditionExpression: "PK = :pk AND begins_with(SK, :prefix)",
-        ExpressionAttributeValues: { ":pk": PK, ":prefix": "APPT#" },
+        ExpressionAttributeValues: filterValues,
+        ...(filterExp && {
+          FilterExpression: filterExp,
+          ExpressionAttributeNames: filterNames,
+        }),
       }),
     );
     return response(200, result.Items || []);
@@ -69,6 +86,7 @@ exports.handler = async (event) => {
       tenantId,
       doctorId: body.doctorId,
       doctorName: body.doctorName,
+      doctorEmail: body.doctorEmail || null,
       patientId: body.patientId,
       patientName: body.patientName,
       date: body.date,
@@ -92,6 +110,7 @@ exports.handler = async (event) => {
     const fields = [
       "doctorId",
       "doctorName",
+      "doctorEmail",
       "patientId",
       "patientName",
       "date",
