@@ -11,19 +11,28 @@ const {
   PostToConnectionCommand,
 } = require("@aws-sdk/client-apigatewaymanagementapi");
 const { randomUUID } = require("crypto");
-
 const sqsClient = new SQSClient({});
-
 const client = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 function getTenantId(event) {
   return event.headers?.['x-api-key'] || 'tenant-default';
 }
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type,x-api-key,Authorization",
+  "Access-Control-Allow-Methods": "GET,POST,DELETE,PATCH,OPTIONS",
+  "Content-Type": "application/json",
+};
 
 exports.handler = async (event) => {
   const method = event.requestContext.http.method;
   const tenantId = getTenantId(event);
+
+  // Handle CORS preflight
+  if (method === "OPTIONS") {
+    return { statusCode: 200, headers: corsHeaders, body: "" };
+  }
 
   try {
     if (method === "POST") {
@@ -37,68 +46,82 @@ exports.handler = async (event) => {
         description: body.description || "",
         createdAt: new Date().toISOString(),
       };
-
-      await client.send(
-        new PutCommand({
-          TableName: process.env.TABLE_NAME,
-          Item: newCalendar,
-        }),
-      );
-
-      // Broadcast to all connected WebSocket clients
+      await client.send(new PutCommand({
+        TableName: process.env.TABLE_NAME,
+        Item: newCalendar,
+      }));
       await broadcast(newCalendar);
-
-      // Send to webhook queue
       if (process.env.WEBHOOK_QUEUE_URL) {
-        await sqsClient.send(
-          new SendMessageCommand({
-            QueueUrl: process.env.WEBHOOK_QUEUE_URL,
-            MessageBody: JSON.stringify({
-              tenantId,
-              eventType: "CALENDAR_CREATED",
-              data: newCalendar,
-            }),
+        await sqsClient.send(new SendMessageCommand({
+          QueueUrl: process.env.WEBHOOK_QUEUE_URL,
+          MessageBody: JSON.stringify({
+            tenantId,
+            eventType: "CALENDAR_CREATED",
+            data: newCalendar,
           }),
-        );
+        }));
       }
-
       return {
         statusCode: 201,
-        headers: { "Content-Type": "application/json" },
+        headers: corsHeaders,
         body: JSON.stringify({ calendarId, name: body.name }),
       };
     }
 
-    if (method === 'DELETE') {
-  const calendarId = event.pathParameters?.calendarId;
-  if (!calendarId) return { statusCode: 400, body: JSON.stringify({ message: 'Missing calendarId' }) };
+    if (method === "DELETE") {
+      const calendarId = event.pathParameters?.calendarId;
+      if (!calendarId) {
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ message: "Missing calendarId" }) };
+      }
 
-  await client.send(new DeleteCommand({
-    TableName: process.env.TABLE_NAME,
-    Key: {
-      PK: `TENANT#${tenantId}`,
-      SK: `CAL#${calendarId}`
-    }
-  }));
+      // Also delete all events belonging to this calendar
+      const eventsResult = await client.send(new QueryCommand({
+        TableName: process.env.TABLE_NAME,
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+        ExpressionAttributeValues: {
+          ":pk": `TENANT#${tenantId}#CAL#${calendarId}`,
+          ":sk": "EVENT#",
+        },
+      }));
 
-  return { statusCode: 200, body: JSON.stringify({ message: 'Deleted' }) };
-}
+      // Delete all events first
+      if (eventsResult.Items?.length) {
+        await Promise.all(eventsResult.Items.map((item) =>
+          client.send(new DeleteCommand({
+            TableName: process.env.TABLE_NAME,
+            Key: { PK: item.PK, SK: item.SK },
+          }))
+        ));
+      }
 
-    if (method === "GET") {
-      const result = await client.send(
-        new QueryCommand({
-          TableName: process.env.TABLE_NAME,
-          KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
-          ExpressionAttributeValues: {
-            ":pk": `TENANT#${tenantId}`,
-            ":sk": "CAL#",
-          },
-        }),
-      );
+      // Delete the calendar itself
+      await client.send(new DeleteCommand({
+        TableName: process.env.TABLE_NAME,
+        Key: {
+          PK: `TENANT#${tenantId}`,
+          SK: `CAL#${calendarId}`,
+        },
+      }));
 
       return {
         statusCode: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: corsHeaders,
+        body: JSON.stringify({ message: "Deleted" }),
+      };
+    }
+
+    if (method === "GET") {
+      const result = await client.send(new QueryCommand({
+        TableName: process.env.TABLE_NAME,
+        KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+        ExpressionAttributeValues: {
+          ":pk": `TENANT#${tenantId}`,
+          ":sk": "CAL#",
+        },
+      }));
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
         body: JSON.stringify(result.Items),
       };
     }
@@ -106,40 +129,32 @@ exports.handler = async (event) => {
     console.error(err);
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({ error: err.message }),
     };
   }
 };
 
 async function broadcast(data) {
-  // Get all connections
-  const result = await client.send(
-    new QueryCommand({
-      TableName: process.env.TABLE_NAME,
-      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
-      ExpressionAttributeValues: {
-        ":pk": "CONNECTIONS",
-        ":sk": "CONN#",
-      },
-    }),
-  );
-
+  const result = await client.send(new QueryCommand({
+    TableName: process.env.TABLE_NAME,
+    KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+    ExpressionAttributeValues: {
+      ":pk": "CONNECTIONS",
+      ":sk": "CONN#",
+    },
+  }));
   if (!result.Items || result.Items.length === 0) return;
-
   const wsClient = new ApiGatewayManagementApiClient({
     endpoint: process.env.WS_ENDPOINT,
   });
-
   const message = JSON.stringify({ type: "CALENDAR_CREATED", data });
-
   await Promise.allSettled(
     result.Items.map((conn) =>
-      wsClient.send(
-        new PostToConnectionCommand({
-          ConnectionId: conn.connectionId,
-          Data: Buffer.from(message),
-        }),
-      ),
-    ),
+      wsClient.send(new PostToConnectionCommand({
+        ConnectionId: conn.connectionId,
+        Data: Buffer.from(message),
+      }))
+    )
   );
 }

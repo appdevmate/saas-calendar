@@ -1,0 +1,4 @@
+cdk deploy
+git add .
+git commit -m "Fixing Delete Calendar"
+git push
