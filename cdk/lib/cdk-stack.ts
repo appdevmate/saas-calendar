@@ -108,6 +108,22 @@ export class CdkStack extends cdk.Stack {
       },
     });
 
+    // Examinations
+    const examinationsLambda = new lambda.Function(this, "ExaminationsLambda", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "examinations.handler",
+      code: lambda.Code.fromAsset("lambda"),
+      environment: { TABLE_NAME: table.tableName },
+    });
+
+    const auditLambda = new lambda.Function(this, "AuditLambda", {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: "audit.handler",
+      code: lambda.Code.fromAsset("lambda"),
+      environment: { TABLE_NAME: table.tableName },
+    });
+    table.grantReadWriteData(auditLambda);
+
     // ─── Permissions ──────────────────────────────────────────
     table.grantReadWriteData(calendarsFn);
     table.grantReadWriteData(webhooksFn);
@@ -116,6 +132,8 @@ export class CdkStack extends cdk.Stack {
     table.grantReadWriteData(publicFn);
     table.grantReadWriteData(eventsFn);
     table.grantReadWriteData(appointmentsFn);
+    table.grantReadWriteData(examinationsLambda);
+    table.grantReadWriteData(auditLambda);
 
     webhookQueue.grantSendMessages(calendarsFn);
     webhookQueue.grantConsumeMessages(webhookFn);
@@ -277,6 +295,43 @@ export class CdkStack extends cdk.Stack {
       integration: new integrations.HttpLambdaIntegration(
         "AppointmentIntegration",
         appointmentsFn,
+      ),
+    });
+
+    api.addRoutes({
+      path: "/examinations",
+      methods: [apigw.HttpMethod.GET, apigw.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration(
+        "ExaminationsInt",
+        examinationsLambda,
+      ),
+    });
+    api.addRoutes({
+      path: "/examinations/{examId}",
+      methods: [
+        apigw.HttpMethod.GET,
+        apigw.HttpMethod.PATCH,
+        apigw.HttpMethod.DELETE,
+      ],
+      integration: new integrations.HttpLambdaIntegration(
+        "ExaminationInt",
+        examinationsLambda,
+      ),
+    });
+    api.addRoutes({
+      path: "/examinations/{examId}/signoff",
+      methods: [apigw.HttpMethod.POST],
+      integration: new integrations.HttpLambdaIntegration(
+        "ExaminationSignOffInt",
+        examinationsLambda,
+      ),
+    });
+    api.addRoutes({
+      path: "/audit",
+      methods: [apigw.HttpMethod.GET],
+      integration: new integrations.HttpLambdaIntegration(
+        "AuditInt",
+        auditLambda,
       ),
     });
 

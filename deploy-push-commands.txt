@@ -1,4 +1,4 @@
 cdk deploy
 git add .
-git commit -m "Fixing Delete Calendar"
+git commit -m "add examination lambda and routes"
 git push
